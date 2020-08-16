@@ -2,10 +2,10 @@
 
 const int sw_pin = 9;
 const int Button[7] ={2,3,4,5,6,7,8};
-const char key_assign[7] = {'z','x','a','s',KEY_ESC,'q','w',};
+const char key_assign[7] = {'x','z','a','s',KEY_ESC,'q','w',};
 const int Toggle = 10;
-const int x_pin = A0;
-const int y_pin = A1;
+const int x_pin = A1;
+const int y_pin = A0;
 const float move_max = 10;
 
 int sw = 0;
@@ -61,8 +61,8 @@ void loop() {
   }
   TGL = digitalRead(Toggle);
 
-  float xDistance = (float)x_pos / 1023.0f * move_max - 5;
-  float yDistance = (float)y_pos / 1023.0f * move_max - 5;
+  float xDistance = -1 * ((float)x_pos / 1023.0f * move_max - 5);
+  float yDistance = -1 * ((float)y_pos / 1023.0f * move_max - 5);
 
   // トグルがonのときのみキーボード入力をする
   if (TGL == HIGH){
