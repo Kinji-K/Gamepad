@@ -30,8 +30,10 @@ int count_arrow_memory(float Distance){
 // スティックの読み取り値とカウンタ値から方向キーの入力をする関数
 void arrow_input(float Distance, int count, int up, int down){
   if (Distance > 2 && count == 1){
+    Keyboard.release(down);
     Keyboard.press(up);
   } else if (Distance < -2 && count == -1) {
+    Keyboard.release(up);
     Keyboard.press(down);
   } else if (Distance >= -2 && Distance <=2 && count == 0){
     Keyboard.release(up);
@@ -100,6 +102,6 @@ void loop() {
   Count_arrow[0] = count_arrow_memory(xDistance);
   Count_arrow[1] = count_arrow_memory(yDistance);
   
-  delay(20);
+  delay(10);
 
 }
