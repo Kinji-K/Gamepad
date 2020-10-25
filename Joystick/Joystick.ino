@@ -2,7 +2,6 @@
 
 const int sw_pin = 9;
 const int Button[7] ={2,3,4,5,6,7,8};
-const char key_assign[7] = {'x','z','a','s',KEY_ESC,'q','w',};
 const int Toggle = 10;
 const int x_pin = A1;
 const int y_pin = A0;
@@ -15,6 +14,10 @@ int BTN[7] = {0};
 int Count[7] = {0};
 int Count_arrow[2] = {0};
 int TGL = 0;
+int flug = 0;
+
+byte buf[8]; 
+char key_assign[7] = {'x','z','a','s',KEY_ESC,'q','w',};
 
 // スティックの読み取り値からカウンタ値を返す関数
 int count_arrow_memory(float Distance){
@@ -87,8 +90,27 @@ void loop() {
   } else {
     Serial.println ("Off");
     Keyboard.releaseAll();
+
+    delay(1000);
+    
+    //トグルがオフの時にSerial dataを受け取りkey_assignを変更する処理
+    while (Serial.available()>0){
+      Serial.flush();
+      buf[0] = Serial.read();
+      Serial.println(buf[0]);
+      if (buf[0] == 255){
+      
+        for(int i=0;i<7;i++){
+          delay(1000);
+          buf[i+1] = Serial.read();
+          key_assign[i] = buf[i+1];
+          Serial.println(buf[i+1]);
+        }
+        Serial.println("OK");
+      }
+      delay(500);
+    }
   }
-  
     
   // カウンタの更新
   for (int i=0; i<7; i++){

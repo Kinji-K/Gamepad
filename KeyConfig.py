@@ -4,6 +4,9 @@ import tkinter as tk
 import mojimoji
 from tkinter import *
 from tkinter import ttk
+import serial
+import threading
+import time
 
 # arduinoのkeyborad.hの特殊入力用コードの取得
 def import_key_dict(dict):
@@ -82,6 +85,22 @@ class main_window():
                 command = self.change_key(i+5)
                 ))
             self.button[i+5].grid(column=LR_XPOS[i],row=0)
+        
+        # dataをarduinoに送るボタン
+        self.button.append(ttk.Button(
+            self.frame,
+            text="Send config",
+            command = self.send_data()
+        ))
+        self.button[7].grid(column=4,row=5)
+
+        # Quiteボタン
+        self.button.append(ttk.Button(
+            self.frame,
+            text="Quit",
+            command = self.window.destroy
+        ))
+        self.button[8].grid(column=2,row=6)
     
     # 各キーの変更用のメソッド
     def change_key(self,num):
@@ -131,7 +150,79 @@ class main_window():
             self.window1.mainloop()
         return inner
 
-    # 各ボタンのkeyを、ラベルからASCII_codeの数値に変換する関数
+    # Arduinoにデータを送るメソッド
+    def send_data(self):
+        def inner():
+
+            # ポートの確認。接続がなければエラーウインドウ
+            try:
+                self.serial = serial.Serial('/dev/ttyACM0',9600,timeout=5)
+
+            except:
+                self.msg("Gamepad is not connected")()
+                return
+
+            # 待ちウインドを別スレッド化で立てる
+            thread1 = threading.Thread(target=self.msg("Please wait for data send"))
+            thread1.setDaemon(True)
+            thread1.start()
+
+            # データ送信
+            self.send_serial()
+
+        return inner
+
+    # データ送信用メソッド
+    def send_serial(self):
+        start_time = time.time()
+        take_time = 0
+
+        # OKが出るかタイムアウトまで無限ループ
+        while(take_time < 30):
+
+            # Gamepadからトグルの「Off」が来ていることを確認。
+            self.serial.flushInput()
+            line1 = self.serial.readline().decode("utf-8")
+            
+            # Offが来ていたらデータ送信開始
+            if("Off" in line1):
+
+                # 「OK」の受領が確認されるまで送信し続ける
+                while("OK" not in line1):
+
+                    # ヘッダ「255 = 0xff」を送信してブッファを削除
+                    self.serial.write(b"\xff")
+                    self.serial.flushInput()
+
+                    # 受領確認用（255）
+                    line1 = self.serial.readline().decode("utf-8")
+                    print(line1)
+
+                    # 各割当キーを送信
+                    for i in range(7):
+                        self.serial.write(self.key[i].to_bytes(1,"big"))
+
+                    # 各割当キーの返信を確認
+                    for i in range(7):
+                        line1 = self.serial.readline().decode("utf-8")
+                        print(line1)
+
+                    # 上手く行っていればここで「OK」が帰ってくる
+                    line1 = self.serial.readline().decode("utf-8")
+                    print(line1)
+                
+                # 「OK」でループを抜けたら「Succeeded」を表示してBreak
+                msg = "Succeeded"  
+                print(msg)
+                break
+            take_time = time.time()-start_time
+        else:
+            msg = "Timeout"
+            print(msg)
+
+        self.msg(msg)()
+
+    # 各ボタンのkeyを、ラベルからASCII_codeの数値に変換するメソッド
     def update_key(self,text,num,mode):
         def inner():
             key_text = text
@@ -153,6 +244,7 @@ class main_window():
             self.msg(letter)()
         return inner
 
+    # 汎用のメッセージ表示用ウインドウ作成用のメソッド
     def msg(self,letter):
         def inner():
             msg_win = tk.Tk()
@@ -169,7 +261,6 @@ class main_window():
             button_msg.pack()
 
             msg_win.mainloop()
-            self.window1.destroy
         return inner
 
 # arduino keybord.h用のASCII codeの宣言と取り込み
@@ -180,7 +271,6 @@ import_key_dict(HEX_KEY)
 ABXY_XPOS = [1,2,3,2]
 ABXY_YPOS = [2,3,2,1]
 LR_XPOS = [0,4]
-
 
 
 main = main_window()
